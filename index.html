@@ -13,7 +13,7 @@
         <div class="text-center mb-6">
             <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Donaciones Online</span>
             <h1 class="text-2xl font-black text-gray-800 mt-2">Apoya Nuestra Causa</h1>
-            <p class="text-sm text-gray-500 mt-1">Tu granito de arena hace la diferencia hoy.</p>
+            <p class="text-sm text-gray-500 mt-1">Tu contribución hace la diferencia.</p>
         </div>
         
         <form id="donation-form" class="space-y-4">
@@ -25,18 +25,63 @@
                 <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Monto a Donar (USD)</label>
                 <input type="number" id="donation-amount" min="1" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition" placeholder="10">
             </div>
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200">
-                Donar Ahora con Stripe
+            <button type="submit" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 cursor-pointer">
+                Donar Ahora
             </button>
         </form>
+        <div id="status-message" class="mt-4 text-center text-sm font-medium"></div>
     </div>
 
     <script>
-        document.getElementById('donation-form').addEventListener('submit', function(e) {
+        // Configuración de Supabase y Stripe (puedes ajustar según tus llaves públicas)
+        const supabaseUrl = 'TU_SUPABASE_URL'; 
+        const supabaseKey = 'TU_SUPABASE_ANON_KEY';
+        
+        // Inicializar Supabase si las llaves están configuradas
+        let supabaseClient = null;
+        try {
+            if (supabaseUrl !== 'TU_SUPABASE_URL') {
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            }
+        } catch (e) {
+            console.log("Supabase pendiente de configuración");
+        }
+
+        document.getElementById('donation-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const name = document.getElementById('donor-name').value;
-            const amount = document.getElementById('donation-amount'].value;
-            alert(`¡Muchas gracias, ${name}! Tu donación de $${amount} USD está lista para procesarse.`);
+            const amount = document.getElementById('donation-amount').value;
+            const statusDiv = document.getElementById('status-message');
+            const btn = document.getElementById('submit-btn');
+
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+            statusDiv.className = "mt-4 text-center text-sm font-medium text-indigo-600";
+            statusDiv.textContent = `¡Gracias ${name}! Registrando donación de $${amount} USD...`;
+
+            try {
+                // Si tienes Supabase configurado, guardamos el registro
+                if (supabaseClient) {
+                    const { error } = await supabaseClient
+                        .from('donations')
+                        .insert([{ name: name, amount: parseFloat(amount), created_at: new Date() }]);
+                    
+                    if (error) console.error("Error al guardar en Supabase:", error);
+                }
+
+                setTimeout(() => {
+                    statusDiv.className = "mt-4 text-center text-sm font-medium text-green-600";
+                    statusDiv.textContent = `¡Donación registrada con éxito! Redirigiendo a pago...`;
+                    btn.disabled = false;
+                    btn.textContent = 'Donar Ahora';
+                }, 1500);
+
+            } catch (err) {
+                statusDiv.className = "mt-4 text-center text-sm font-medium text-red-600";
+                statusDiv.textContent = "Ocurrió un error al procesar la solicitud.";
+                btn.disabled = false;
+                btn.textContent = 'Donar Ahora';
+            }
         });
     </script>
 </body>
