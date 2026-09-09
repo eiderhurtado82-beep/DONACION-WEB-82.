@@ -6,7 +6,6 @@
     <title>Plataforma de Donaciones</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center min-h-screen">
     <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
@@ -23,19 +22,23 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Monto a Donar (USD)</label>
-                <input type="number" id="donation-amount" min="1" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition" placeholder="10">
+                <input type="number" id="donation-amount" min="1" value="10" required class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition" placeholder="10">
             </div>
-            <button type="submit" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 cursor-pointer">
-                Donar Ahora
+            <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 cursor-pointer flex items-center justify-center gap-2">
+                Donar con PayPal
             </button>
         </form>
         <div id="status-message" class="mt-4 text-center text-sm font-medium"></div>
     </div>
 
     <script>
+        // Tus credenciales de Supabase
         const supabaseUrl = 'https://arkogeihodnwmyplzvxe.supabase.co'; 
         const supabaseKey = 'sb_publishable_WozL1CCQsJA-PpNghHjoRSw_9qMSMRZY';
         
+        // Tu correo configurado para recibir los pagos en PayPal
+        const paypalEmail = 'ehurtadopena@gmail.com';
+
         let supabaseClient = null;
         try {
             supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
@@ -52,10 +55,11 @@
 
             btn.disabled = true;
             btn.textContent = 'Procesando...';
-            statusDiv.className = "mt-4 text-center text-sm font-medium text-indigo-600";
-            statusDiv.textContent = `¡Gracias ${name}! Registrando donación de $${amount} USD...`;
+            statusDiv.className = "mt-4 text-center text-sm font-medium text-blue-600";
+            statusDiv.textContent = `Registrando y redirigiendo a PayPal...`;
 
             try {
+                // 1. Guardar el registro en Supabase
                 if (supabaseClient) {
                     const { error } = await supabaseClient
                         .from('donations')
@@ -64,18 +68,17 @@
                     if (error) console.error("Error al guardar en Supabase:", error);
                 }
 
+                // 2. Redirigir a PayPal con tu correo y el monto indicado
                 setTimeout(() => {
-                    statusDiv.className = "mt-4 text-center text-sm font-medium text-green-600";
-                    statusDiv.textContent = `¡Donación registrada con éxito en la base de datos!`;
-                    btn.disabled = false;
-                    btn.textContent = 'Donar Ahora';
-                }, 1500);
+                    const paypalUrl = `https://www.paypal.com/donate?business=${encodeURIComponent(paypalEmail)}&item_name=${encodeURIComponent('Donación para la Causa - ' + name)}&amount=${encodeURIComponent(amount)}&currency_code=USD`;
+                    window.location.href = paypalUrl;
+                }, 1000);
 
             } catch (err) {
                 statusDiv.className = "mt-4 text-center text-sm font-medium text-red-600";
                 statusDiv.textContent = "Ocurrió un error al procesar la solicitud.";
                 btn.disabled = false;
-                btn.textContent = 'Donar Ahora';
+                btn.textContent = 'Donar con PayPal';
             }
         });
     </script>
